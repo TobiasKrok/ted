@@ -19,17 +19,19 @@ const (
 )
 
 type Cursor struct {
-	Row   int
-	Col   int
-	style CursorStyle
+	Row    int
+	Col    int
+	style  CursorStyle
+	Hidden bool
 }
 
-func NewCursor(tRow, tCol int) *Cursor {
+func NewCursor() *Cursor {
 
 	return &Cursor{
-		Row:   0,
-		Col:   0,
-		style: CursorStyleNormal,
+		Row:    1,
+		Col:    1,
+		Hidden: false,
+		style:  CursorStyleNormal,
 	}
 }
 
@@ -46,20 +48,29 @@ func (c *Cursor) setStyle(s CursorStyle) {
 }
 
 // TODO: limits?
-func (t *Cursor) move(dir CursorMoveDir, count int) {
+func (c *Cursor) move(dir CursorMoveDir, count int) {
 
 	switch dir {
 	case CursorMoveLeft:
-		t.Col -= count
+		c.Col -= count
 	case CursorMoveRight:
-		t.Col += count
+		c.Col += count
 	case CursorMoveDown:
-		t.Row += count
+		c.Row += count
 	case CursorMoveUp:
-		t.Row -= count
+		c.Row -= count
 	}
 }
 
-func (t *Cursor) moveHome() {
-	fmt.Print("\x1b[0;2H")
+func (c *Cursor) moveHome() {
+	fmt.Print("\x1b[H")
+}
+
+func (c *Cursor) Show() {
+	c.Hidden = false
+	fmt.Print("\x1b[?25h")
+}
+func (c *Cursor) Hide() {
+	c.Hidden = true
+	fmt.Print("\x1b[?25l")
 }

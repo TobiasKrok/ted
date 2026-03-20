@@ -26,7 +26,7 @@ type TedEditor struct {
 }
 
 func NewTedEditor(term *term.Terminal) *TedEditor {
-	cursor := NewCursor(term.Size.Rows, term.Size.Cols)
+	cursor := NewCursor()
 	buf := buffer.New()
 	return &TedEditor{
 		term:   term,
@@ -38,9 +38,11 @@ func NewTedEditor(term *term.Terminal) *TedEditor {
 
 func (t *TedEditor) Render() error {
 	t.term.Clear()
+	t.cursor.Hide()
 	t.cursor.moveHome()
 	fmt.Println(t.buf.String())
-
+	fmt.Printf("\x1b[%d;%dH", t.cursor.Row, t.cursor.Col)
+	t.cursor.Show()
 	// var sb strings.Builder
 	// for i := range t.term.Size.Cols {
 	// 	if i == t.term.Size.Cols-1 {
@@ -92,11 +94,11 @@ func (t *TedEditor) handleNormalMode(key input.KeyEvent) {
 			t.cursor.move(CursorMoveRight, 1)
 		}
 	case 'h':
-		if t.cursor.Col-1 > t.term.Size.Cols {
+		if t.cursor.Col-1 > 1 {
 			t.cursor.move(CursorMoveLeft, 1)
 		}
 	case 'k':
-		if t.cursor.Row-1 > t.term.Size.Rows {
+		if t.cursor.Row-1 > 1 {
 			t.cursor.move(CursorMoveUp, 1)
 		}
 	case 'j':
