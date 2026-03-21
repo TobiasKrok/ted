@@ -27,7 +27,7 @@ type TedEditor struct {
 
 func NewTedEditor(term *term.Terminal) *TedEditor {
 	cursor := NewCursor()
-	buf := buffer.New()
+	buf := buffer.NewGapBuffer(1024 * 4)
 	return &TedEditor{
 		term:   term,
 		cursor: cursor,
