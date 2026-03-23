@@ -2,7 +2,6 @@ package input
 
 import (
 	"bufio"
-	"fmt"
 )
 
 type Key int
@@ -10,6 +9,7 @@ type Key int
 const (
 	KeyChar = iota
 	KeyEsc
+	KeyBackspace
 )
 
 type KeyEvent struct {
@@ -29,8 +29,7 @@ func ReadInput(r *bufio.Reader) (KeyEvent, error) {
 		if r.Buffered() == 0 {
 			return KeyEvent{Type: KeyEsc}, nil
 		}
-		fmt.Println("RUNE:")
-		fmt.Println(char)
+		//TODO: handle key combos
 		return KeyEvent{Type: KeyEsc}, nil
 	}
 

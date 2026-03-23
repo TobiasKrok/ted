@@ -27,7 +27,9 @@ type TedEditor struct {
 
 func NewTedEditor(term *term.Terminal) *TedEditor {
 	cursor := NewCursor()
-	buf := buffer.NewGapBuffer(1024 * 4)
+	// buf := buffer.NewGapBuffer(1024 * 4)
+
+	buf := buffer.NewGapBuffer(10)
 	return &TedEditor{
 		term:   term,
 		cursor: cursor,
@@ -73,7 +75,13 @@ func (t *TedEditor) handleInsertMode(key input.KeyEvent) {
 		return
 	}
 
-	t.buf.Insert(key.Char)
+	fmt.Printf("HEL: %v", key.Char)
+	switch key.Char {
+	case '\b':
+		t.buf.DeleteBackwards()
+	default:
+		t.buf.Insert(key.Char)
+	}
 }
 
 func (t *TedEditor) handleNormalMode(key input.KeyEvent) {
