@@ -75,7 +75,6 @@ func (t *TedEditor) handleInsertMode(key input.KeyEvent) {
 		return
 	}
 
-	fmt.Printf("HEL: %v", key.Char)
 	switch key.Char {
 	case '\b':
 		t.buf.DeleteBackwards()
@@ -88,6 +87,7 @@ func (t *TedEditor) handleNormalMode(key input.KeyEvent) {
 
 	switch key.Char {
 	case 'i':
+		// t.buf.MoveGap()
 		t.mode = ModeInsert
 		t.cursor.setStyle(CursorStyleInsert)
 	case 'a':

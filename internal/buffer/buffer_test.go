@@ -205,10 +205,16 @@ func TestDeleteRange(t *testing.T) {
 	}
 }
 
-func TestDeleteRangeOutOfBoundsNoPanic(t *testing.T) {
+func TestDeleteRangeOutOfBoundsPanic(t *testing.T) {
 	gb := newFilledBuffer("ABC")
-	gb.DeleteRange(-1, 2)
-	gb.DeleteRange(0, 100)
+	err1 := gb.DeleteRange(-1, 2)
+	err2 := gb.DeleteRange(0, 100)
+	if err1 == nil {
+		t.Errorf("deleted from range -1 with no error returned")
+	}
+	if err2 == nil {
+		t.Errorf("deleted to outside the buffer with no error returned")
+	}
 }
 
 func TestCapacityInvariantThroughoutMutations(t *testing.T) {
@@ -238,6 +244,165 @@ func TestStringRoundTrip(t *testing.T) {
 			gb := newFilledBuffer(s)
 			eq(t, "String", gb.String(), s)
 			eq(t, "Length", gb.Length(), len([]rune(s)))
+		})
+	}
+}
+
+func TestMoveGap(t *testing.T) {
+	cases := []struct {
+		name      string
+		initial   string
+		moveTo    int
+		wantStr   string
+		wantStart int
+	}{
+		{"to beginning", "ABCDE", 0, "ABCDE", 0},
+		{"to middle", "ABCDE", 2, "ABCDE", 2},
+		{"to end (no-op)", "ABCDE", 5, "ABCDE", 5},
+		{"single char to start", "A", 0, "A", 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gb := newFilledBuffer(tc.initial)
+			err := gb.MoveGap(tc.moveTo)
+
+			eq(t, "err", err, nil)
+			eq(t, "String", gb.String(), tc.wantStr)
+			eq(t, "start", gb.start, tc.wantStart)
+			eq(t, "cursor", gb.cursor, tc.wantStart)
+			checkInvariant(t, gb, "after move")
+		})
+	}
+}
+
+func TestMoveGapLeftThenRight(t *testing.T) {
+	gb := newFilledBuffer("ABCDE")
+	// gap is at 5, move left to 1
+	gb.MoveGap(1)
+	eq(t, "after left", gb.String(), "ABCDE")
+	eq(t, "start after left", gb.start, 1)
+	checkInvariant(t, gb, "after left")
+
+	// now move right to 4
+	gb.MoveGap(4)
+	eq(t, "after right", gb.String(), "ABCDE")
+	eq(t, "start after right", gb.start, 4)
+	checkInvariant(t, gb, "after right")
+}
+
+func TestMoveGapThenInsert(t *testing.T) {
+	cases := []struct {
+		name    string
+		initial string
+		moveTo  int
+		insert  rune
+		want    string
+	}{
+		{"insert at beginning", "BCD", 0, 'A', "ABCD"},
+		{"insert in middle", "ACD", 1, 'B', "ABCD"},
+		{"insert at end", "ABC", 3, 'D', "ABCD"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gb := newFilledBuffer(tc.initial)
+			gb.MoveGap(tc.moveTo)
+			gb.Insert(tc.insert)
+
+			eq(t, "String", gb.String(), tc.want)
+			eq(t, "Length", gb.Length(), len([]rune(tc.want)))
+			checkInvariant(t, gb, "after move+insert")
+		})
+	}
+}
+
+func TestMoveGapPreservesGapSize(t *testing.T) {
+	gb := newFilledBuffer("ABCDE")
+	gapBefore := gb.gapLen()
+
+	gb.MoveGap(2)
+	eq(t, "gap after left", gb.gapLen(), gapBefore)
+
+	gb.MoveGap(4)
+	eq(t, "gap after right", gb.gapLen(), gapBefore)
+
+	gb.MoveGap(0)
+	eq(t, "gap after far left", gb.gapLen(), gapBefore)
+}
+
+func TestMoveGapRepeated(t *testing.T) {
+	gb := newFilledBuffer("ABCDE")
+	positions := []int{2, 0, 4, 1, 5, 3}
+	for _, pos := range positions {
+		gb.MoveGap(pos)
+		eq(t, "String", gb.String(), "ABCDE")
+		checkInvariant(t, gb, "repeated move")
+	}
+}
+
+func TestMoveGapOutOfBounds(t *testing.T) {
+	gb := newFilledBuffer("ABC")
+
+	err := gb.MoveGap(-1)
+	if err == nil {
+		t.Error("expected error for negative position")
+	}
+
+	err = gb.MoveGap(100)
+	if err == nil {
+		t.Error("expected error for position beyond length")
+	}
+}
+
+func TestDeleteRangeWithGapInMiddle(t *testing.T) {
+	cases := []struct {
+		name    string
+		initial string
+		gapAt   int
+		s, e    int
+		want    string
+	}{
+		{"after gap", "ABCDE", 1, 2, 4, "ABE"},
+		{"across gap", "ABCDE", 2, 1, 4, "AE"},
+		{"across gap all", "ABCDE", 2, 0, 5, ""},
+		{"before gap", "ABCDE", 4, 0, 2, "CDE"},
+		{"last char after gap", "ABCDE", 0, 4, 5, "ABCD"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gb := newFilledBuffer(tc.initial)
+			err := gb.MoveGap(tc.gapAt)
+			eq(t, "move err", err, nil)
+
+			err = gb.DeleteRange(tc.s, tc.e)
+			eq(t, "delete err", err, nil)
+			eq(t, "String", gb.String(), tc.want)
+			eq(t, "Length", gb.Length(), len([]rune(tc.want)))
+			checkInvariant(t, gb, "after delete")
+		})
+	}
+}
+
+func TestCharAt(t *testing.T) {
+	cases := []struct {
+		name    string
+		initial string
+		pos     int
+		want    rune
+	}{
+		{"first character", "ABCD", 0, 'A'},
+		{"last character", "ABCD", 4, 'D'},
+		{"middle character", "ABCDE", 3, 'C'},
+		{"out of bounds left", "ABC", -2, -1},
+		{"out of bounds right", "ABC", 10, -1},
+		{"empty buffer", "", 0, -1},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gb := newFilledBuffer(tc.initial)
+			ch := gb.CharAt(tc.pos)
+			eq(t, "Character", ch, tc.want)
+			checkInvariant(t, gb, "after char at")
 		})
 	}
 }
