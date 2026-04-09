@@ -24,21 +24,19 @@ func main() {
 	}()
 	r := bufio.NewReader(os.Stdin)
 	term.Clear()
-	for {
-		editor.Render()
 
+	for {
+
+		editor.Render()
 		key, err := input.ReadInput(r)
 		if err != nil {
 			fmt.Errorf("%w", err)
 			continue
 		}
-		//TODO: this is temp
-		if key.Type == input.KeyEsc {
-			fmt.Println("adios!")
+		q := editor.HandleKey(key)
+		if q == 1 {
 			break
 		}
-		editor.HandleKey(key)
-
 	}
 
 }
