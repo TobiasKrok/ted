@@ -28,8 +28,8 @@ type Cursor struct {
 func NewCursor() *Cursor {
 
 	return &Cursor{
-		Row:    1,
-		Col:    1,
+		Row:    0,
+		Col:    0,
 		Hidden: false,
 		style:  CursorStyleNormal,
 	}

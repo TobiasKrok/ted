@@ -25,12 +25,12 @@ func ReadInput(r *bufio.Reader) (KeyEvent, error) {
 	}
 
 	// escape
-	if char == '\x1b' {
-		if r.Buffered() == 0 {
-			return KeyEvent{Type: KeyEsc}, nil
-		}
-		//TODO: handle key combos
+	if char == '\x1b' && r.Buffered() == 0 {
 		return KeyEvent{Type: KeyEsc}, nil
+	}
+
+	if char == 127 || char == 8 {
+		return KeyEvent{Type: KeyBackspace}, nil
 	}
 
 	return KeyEvent{Type: KeyChar, Char: char}, nil
