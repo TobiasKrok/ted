@@ -193,6 +193,7 @@ func TestDeleteRange(t *testing.T) {
 		{"delete to end", "ABCDE", 3, 5, "ABC"},
 		{"delete all", "ABCDE", 0, 5, ""},
 		{"reversed args", "ABCDE", 3, 1, "ADE"},
+		{"one char", "ABCDE", 0, 0, "BCDE"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -390,8 +391,8 @@ func TestCharAt(t *testing.T) {
 		want    rune
 	}{
 		{"first character", "ABCD", 0, 'A'},
-		{"last character", "ABCD", 4, 'D'},
-		{"middle character", "ABCDE", 3, 'C'},
+		{"last character", "ABCD", 3, 'D'},
+		{"middle character", "ABCDE", 2, 'C'},
 		{"out of bounds left", "ABC", -2, -1},
 		{"out of bounds right", "ABC", 10, -1},
 		{"empty buffer", "", 0, -1},

@@ -15,16 +15,12 @@ const (
 	ModeInsert
 )
 
-type lines struct {
-	chars []rune
-}
-
 type TedEditor struct {
 	term   *term.Terminal
 	cursor *Cursor
 	mode   mode
 	buf    *buffer.GapBuffer
-	lines  int
+	lines  []int
 	debug  strings.Builder
 }
 
@@ -38,6 +34,7 @@ func NewTedEditor(term *term.Terminal) *TedEditor {
 		cursor: cursor,
 		mode:   ModeNormal,
 		buf:    buf,
+		lines:  []int{0},
 	}
 }
 
@@ -87,6 +84,9 @@ func (t *TedEditor) handleInsertMode(key input.KeyEvent) int {
 		t.buf.Insert(key.Char)
 		//TODO: scroll x
 		t.cursor.move(CursorMoveRight, 1)
+	case input.KeyEnter:
+		t.buf.Insert('\n')
+
 	}
 
 	return 0
@@ -108,8 +108,14 @@ func (t *TedEditor) handleNormalMode(key input.KeyEvent) int {
 	case 'a':
 		t.mode = ModeInsert
 		t.cursor.setStyle(CursorStyleInsert)
-		if t.cursor.Col < t.term.Size.Cols {
-			t.cursor.move(CursorMoveRight, 1)
+		if t.cursor.Col+1 < t.term.Size.Cols {
+			err := t.buf.MoveGap(t.cursor.Col + 1)
+			if err != nil {
+				//TODO: handle
+			} else {
+
+				t.cursor.move(CursorMoveRight, 1)
+			}
 		}
 		// movement
 	case 'l':

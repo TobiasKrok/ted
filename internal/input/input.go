@@ -10,6 +10,7 @@ const (
 	KeyChar = iota
 	KeyEsc
 	KeyBackspace
+	KeyEnter
 )
 
 type KeyEvent struct {
@@ -27,10 +28,10 @@ func ReadInput(r *bufio.Reader) (KeyEvent, error) {
 	// escape
 	if char == '\x1b' && r.Buffered() == 0 {
 		return KeyEvent{Type: KeyEsc}, nil
-	}
-
-	if char == 127 || char == 8 {
+	} else if char == 127 || char == 8 {
 		return KeyEvent{Type: KeyBackspace}, nil
+	} else if char == '\r' || char == '\n' {
+		return KeyEvent{Type: KeyEnter}, nil
 	}
 
 	return KeyEvent{Type: KeyChar, Char: char}, nil

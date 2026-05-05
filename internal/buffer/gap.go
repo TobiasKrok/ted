@@ -33,6 +33,18 @@ func (g *GapBuffer) Insert(r rune) {
 	g.start += 1
 }
 
+func (g *GapBuffer) DeleteForwards() {
+
+	if g.cursor == len(g.data)-1 {
+
+	}
+	if g.start == 0 {
+		return
+	}
+
+	g.start -= 1
+	g.cursor -= 1
+}
 func (g *GapBuffer) DeleteBackwards() {
 
 	if g.start == 0 {
@@ -65,15 +77,26 @@ func (g *GapBuffer) DeleteRange(start, end int) error {
 		// A B C D E [____]  F G H
 		//   |   |
 		// AE [____] F G H
-		bef := g.data[pe:g.start] // chars form the end of the deletion range to the start of the gap
 
-		ns := ps + len(bef) // new gap start
+		//TODO: this make the test pass, but I dont like it, is it good?
+		peIdx := pe
+		if ps == pe {
+			peIdx += 1
+		}
+		bef := g.data[peIdx:g.start] // chars form the end of the deletion range to the start of the gap
+		ns := ps + len(bef)          // new gap start
 		copy(g.data[ps:ns], bef)
 		g.start = ns
 		g.cursor = ns
+
 	} else if ps >= g.end {
 		//TODO: move cursor
-		aft := g.data[g.end:ps]
+
+		psIdx := ps
+		if ps == pe {
+			psIdx -= 1
+		}
+		aft := g.data[g.end:psIdx]
 		newEnd := pe - len(aft)
 		copy(g.data[newEnd:], aft)
 		g.end = newEnd
@@ -134,7 +157,7 @@ func (g *GapBuffer) grow() {
 func (g *GapBuffer) CharAt(pos int) rune {
 	p := g.toPhysical(pos)
 
-	if p < 0 || p >= len(g.data) {
+	if p < 0 || p > len(g.data)-1 {
 		return -1
 	}
 
@@ -157,10 +180,9 @@ func (g *GapBuffer) gapLen() int {
 func (g *GapBuffer) toPhysical(pos int) int {
 
 	p := pos
-	gl := g.gapLen()
 
 	if p >= g.start {
-		p = pos + gl
+		p = pos + g.gapLen()
 	}
 	return p
 }
