@@ -62,6 +62,11 @@ func (c *Cursor) move(dir CursorMoveDir, count int) {
 	}
 }
 
+func (c *Cursor) setPos(row, col int) {
+	c.Col = col
+	c.Row = row
+}
+
 func (c *Cursor) moveHome() {
 	fmt.Print("\x1b[H")
 }

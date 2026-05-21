@@ -35,9 +35,6 @@ func (g *GapBuffer) Insert(r rune) {
 
 func (g *GapBuffer) DeleteForwards() {
 
-	if g.cursor == len(g.data)-1 {
-
-	}
 	if g.start == 0 {
 		return
 	}
@@ -170,6 +167,9 @@ func (g *GapBuffer) String() string {
 
 func (g *GapBuffer) Length() int {
 	return len(g.data) - g.gapLen()
+}
+func (g *GapBuffer) InternalLength() int {
+	return len(g.data)
 }
 
 func (g *GapBuffer) gapLen() int {

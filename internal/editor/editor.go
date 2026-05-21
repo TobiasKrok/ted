@@ -28,13 +28,13 @@ func NewTedEditor(term *term.Terminal) *TedEditor {
 	cursor := NewCursor()
 	// buf := buffer.NewGapBuffer(1024 * 4)
 
-	buf := buffer.NewGapBuffer(10)
+	buf := buffer.NewGapBuffer(100)
 	return &TedEditor{
 		term:   term,
 		cursor: cursor,
 		mode:   ModeNormal,
 		buf:    buf,
-		lines:  []int{0},
+		lines:  []int{0}, // it contains the row/col position of the 
 	}
 }
 
@@ -44,6 +44,7 @@ func (t *TedEditor) Render() error {
 	t.cursor.moveHome()
 	fmt.Println(t.buf.String())
 	fmt.Printf("\n\nDEBUG: %s", t.debug.String())
+	t.debug.Reset()
 	fmt.Printf("\x1b[%d;%dH", t.cursor.Row+1, t.cursor.Col+1)
 	t.cursor.Show()
 
@@ -70,6 +71,18 @@ func (t *TedEditor) HandleKey(key input.KeyEvent) int {
 	return 0
 }
 
+// this translates the cursor position into the correct buffer index
+// KEEP IN MIND: the order of calls matter since it uses the alreayd calculated coordinates of the cursor. maybe we need a peek at some point
+func (t *TedEditor) cursorToBufIdx() int {
+	//TODO: this probably needs change when we have scroll implemented
+	offset := t.lines[t.cursor.Row]
+
+	return offset + 
+
+}
+
+//TODO: recalculate newlines
+
 func (t *TedEditor) handleInsertMode(key input.KeyEvent) int {
 
 	switch key.Type {
@@ -83,12 +96,18 @@ func (t *TedEditor) handleInsertMode(key input.KeyEvent) int {
 
 		t.buf.Insert(key.Char)
 		//TODO: scroll x
-		t.cursor.move(CursorMoveRight, 1)
+		if t.cursor.Col+1 >= t.term.Size.Cols {
+			t.cursor.move(CursorMoveDown, 1)
+			t.cursor.setPos(t.cursor.Row, 0) // at first col
+		} else {
+			t.cursor.move(CursorMoveRight, 1)
+		}
 	case input.KeyEnter:
 		t.buf.Insert('\n')
-
+		t.lines = append(t.lines, t.cursor.Row+1)
+		t.cursor.setPos(t.cursor.Row+1, 0)
 	}
-
+	t.debug.WriteString(fmt.Sprintf("%v %v", t.term.Size.Cols, t.buf.InternalLength()))
 	return 0
 }
 
@@ -100,7 +119,7 @@ func (t *TedEditor) handleNormalMode(key input.KeyEvent) int {
 	case 'i':
 		t.mode = ModeInsert
 		t.cursor.setStyle(CursorStyleInsert)
-		err := t.buf.MoveGap(t.cursor.Col)
+		err := t.buf.MoveGap(t.cursorToBufIdx())
 		if err != nil {
 			//TODO: handle error
 		}
@@ -109,11 +128,10 @@ func (t *TedEditor) handleNormalMode(key input.KeyEvent) int {
 		t.mode = ModeInsert
 		t.cursor.setStyle(CursorStyleInsert)
 		if t.cursor.Col+1 < t.term.Size.Cols {
-			err := t.buf.MoveGap(t.cursor.Col + 1)
+			err := t.buf.MoveGap(t.cursorToBufIdx() + 1)
 			if err != nil {
 				//TODO: handle
 			} else {
-
 				t.cursor.move(CursorMoveRight, 1)
 			}
 		}
